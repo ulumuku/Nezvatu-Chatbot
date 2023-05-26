@@ -1,0 +1,100 @@
+import re
+import advanced_responses
+from template_file import Templatess
+
+def get_user_input():
+    return input('Ви: ')
+
+class InputInterpriter:
+    def __init__(self, initial_message=''):
+        self.match_percentages = {}
+        self.outer_input = initial_message.lower()
+
+        # Pass the templates and unknown_response arguments to self
+        self.templates = Templatess.templates
+        self.unknown_response = advanced_responses.unknown
+
+        # Initialize instance variables for split_input, word_list, and outer_input
+        self.split_input = []
+        self.word_list = []
+
+    def __call__(self, outer_input):
+        self.outer_input = outer_input.lower()
+        return self.get_prompt()
+
+    def check_for_matches(self):
+        matches = 0
+        for word in self.split_input:
+            if word in self.word_list:
+                matches += 1
+
+        match_percentage = 0
+        if matches > 0:
+            match_percentage = float(matches) / float(len(self.split_input)) * 100
+
+        return match_percentage
+
+    def compare_messages(self):
+        self.match_percentages.clear()
+        self.split_input = self.get_split_input()
+
+        for words, response in self.templates:
+            self.template(words, response)
+
+    def template(self, word_list, bot_response):
+        self.word_list = word_list
+        match_percentage = self.check_for_matches()
+        self.match_percentages[bot_response] = match_percentage
+
+    def get_split_input(self):
+        split_input = re.split(r'\s+|[,;&?!.-]\s*', self.outer_input)
+        return split_input
+
+    def get_prompt(self):
+        self.compare_messages()
+        match_percentages = self.match_percentages
+        best_list_match = max(match_percentages, key=match_percentages.get)
+        return self.unknown_response() if match_percentages[best_list_match] < 1 \
+            else best_list_match
+
+
+class DevInfoOutput(InputInterpriter):
+    def __init__(self, initial_message=''):
+        super().__init__(initial_message)
+        self.dev_info = ''
+
+    def compare_messages(self):
+        super().compare_messages()
+        self.dev_info = ''
+        for words, response in self.templates:
+            self.template(words, response)
+            match_percentage = self.match_percentages[response]
+            matches = sum(1 for w in self.split_input if w in words)
+            self.dev_info += f'{words}: {match_percentage}% -- {matches} matches\n'
+
+    def get_prompt(self):
+        self.compare_messages()
+        return f'{self.dev_info}Bot response: {super().get_prompt()}' #MARK rework to return just values
+
+
+
+
+
+def main():
+    output_mode = input('dev or user?').lower()
+    inputinterpriter = InputInterpriter()
+    if output_mode == 'dev':
+        while True:
+            response = DevInfoOutput(get_user_input())
+            print('Бот: ' + str(response.get_prompt()))
+    else:
+        while True:
+            response = inputinterpriter(get_user_input())
+            print('Бот: ' + str(response))
+
+
+
+
+
+if __name__ == '__main__':
+    main()
