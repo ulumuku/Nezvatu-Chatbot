@@ -2,8 +2,10 @@
 import random
 import math
 import time
+import datetime
 
-class Exiting(Exception):
+
+class Exiting(Exception):       #Виключення задля роботи перериваючих команд
     pass
 
 
@@ -14,9 +16,9 @@ class BackRequested(Exception):
 class Stopping(Exception):
     pass
 
-
-topic_history = []
-topics_dictionary = {
+date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")       #час та дата для збереження діалогу
+topic_history = []                                                      #історія тем
+topics_dictionary = {                                                    #теми
     'фізика': ['закон збереження енергії',  #
                'закон кулона',  #
                'закон стефана-больцмана'],  #
@@ -40,33 +42,34 @@ topics_dictionary = {
                      'цікавий факт',
                      'в чому сенс життя',
                      'що варто зауважити при створенні власного чатботу']
-
 }
-
+#вітання
 greeting = f"""Вітаю, мене звати Незвати. Ви можете задати мені питання з наступних тем: {', '.join(topics_dictionary.keys())}."""
 
-
-def smooth_console_output(text, initial_delay=0.13, decay_factor=0.98):
+#вивід "типу як у чатGPT, але сіпаний, бо пайтон погано відображає з затримками менше 0.25, що занадто довго
+# нажаль загубив адекватну логарифмічну формулу екпаненції :(
+def smooth_console_output(text, initial_delay=0.07, decay_factor=0.98):
     for index, char in enumerate(text):
         print(char, end='', flush=True)
         delay = initial_delay * (decay_factor ** index)
         time.sleep(delay)
     print('')
 
+#вивід та передача тексту для збереження
 def bot_response(answer):
     smooth_console_output(f'[Бот]: {answer}')
     store_chat_log("", answer)
 
-
+#випадкові додатки до виводу
 def random_comment():
     comments = ["Цікава тема! ", "Тривіальний вибір, але добре...", "Сподіваюсь ви будете задоволені відповіддю..."]
     return random.choice(comments)
 
-
+#команда допомога
 def print_help():
     bot_response(f'''{get_info()}\nЩоб вийти з діалогу введіть "вихід", щоб повернутися до минулої теми введіть "назад", щоб отримати список доступних тем та команд введіть "допомога".''')
 
-
+#інформація про поточну тему та доступні підтеми
 def get_info():
     current_topic = get_current_topic()
     available_subtopics = get_subtopics(current_topic)
@@ -80,13 +83,14 @@ def get_info():
         info = f"Жодної теми не обрано. Доступні теми: {subtopics_string}."
     return info
 
-
+#отримання вводу користувача
 def get_user_input():
     user_input = input('[Користувач]:')
     store_chat_log(user_input, "")
     return user_input
 
-
+#перевірка вводу на наявність комманд: підняття виключень у разі наявності,
+# передача текстового змісту далі у разі відсутності
 def check_input_for_commands():
     initial_input = get_user_input().lower()
     if initial_input == 'вихід':
@@ -98,14 +102,13 @@ def check_input_for_commands():
     else:
         return initial_input
 
-
+#захоплення чисел для оьрахунків зі збереженням перевірки на команди,
+# перевіркою на порожність та невідповідність типу данних
 def get_float():
     while True:
         try:
-            print("floating")
             value_for_float = check_input_for_commands()
             if value_for_float is None:
-                print("isnone")
                 continue
             else:
                 try:
@@ -114,16 +117,15 @@ def get_float():
                 except ValueError:
                     print("Незрозумілі вхідні дані, будь ласка, введіть число або команду з загальнодоступних")
         except BackRequested:
-            print('isback')
             raise Stopping
 
-
+#визначення поточної теми
 def get_current_topic():
     if len(topic_history) == 0:
         return None
     return topic_history[-1]
 
-
+#визначення доступних підтем за поточною темою
 def get_subtopics(topic):
     if topic is None:
         subtopics = list(topics_dictionary.keys())
@@ -131,12 +133,10 @@ def get_subtopics(topic):
         subtopics = topics_dictionary.get(topic, [])
     return subtopics
 
-
+#вивід відповіді за обраною підтемою обраної теми при неформульному її змісті,
+#виклик обробки формульних тем при формулльному
 def handle_subtopics(subtopic):
-    if subtopic == 'закон збереження енергії':
-        bot_response("""Закон збереження енергії є одним з основних принципів фізики, який стверджує, що енергія не може бути створена або знищена, а тільки перетворюється з одного виду в інший або переміщується з одного об'єкта на інший.
-Загальна формулювання закону збереження енергії стверджує, що сума всіх видів енергії в ізольованій системі залишається постійною з часом. Це означає, що якщо взяти усі форми енергії в системі (кінетичну енергію, потенціальну енергію, внутрішню енергію, теплову енергію і т. д.), то їх сума залишиться незмінною.""")
-    elif subtopic == 'назвіть 5 найвищих гір в світі та вкажіть їхні висоти':
+    if subtopic == 'назвіть 5 найвищих гір в світі та вкажіть їхні висоти':
         bot_response("""1.Еверест: 8,848 метрів (29,029 футів). Еверест розташований у Гімалаях, на кордоні Непалу та Китаю (Тибет).
 2.Канченджанга: 8,586 метрів (28,169 футів). Канченджанга знаходиться на кордоні Непалу та Індії в Гімалаях.
 3.Канченджанга: 8,516 метрів (27,940 футів). Канченджанга також розташована на кордоні Непалу та Індії в Гімалаях.
@@ -539,22 +539,30 @@ Present Continuous використовується для опису дій, я
     elif subtopic == 'що варто зауважити при створенні власного чатботу':
         bot_response("""З власного досвіду можу сильно порекомендовати робити бекапи, особливо якщо до цього подібними задачами в великому обсязі займались мало, ну і, звісно не забути здати його якщо це навчальний проєкт...""")
     else:
-        handle_formula_subtopics(subtopic)
+        handle_formula_subtopics(subtopic) #перехід до формульних тем, якщо введений запит не був командою, є в загальному списку
+                                           # підтем але потребує особливої обробки
 
-
+#обробка формульних тем та вивід відповідей
 def handle_formula_subtopics(formula_subtopic):
-    print("formuling")
     while True:
         try:
-            if formula_subtopic == 'площа трикутника':
-                bot_response('Формула площі трикутника -> S = 0.5 * b * h')
-                bot_response("Введіть довжину основи трикутника b: ")
-                b = get_float()
-                bot_response("Введіть висоту трикутника, опущену на основу h: ")
+            if formula_subtopic == 'закон збереження енергії':
+                bot_response('Формула для обчислення потенціальної енергії: Epot = m * g * h')
+                bot_response("Введіть масу тіла (у кілограмах): ")
+                m = get_float()
+                bot_response("Введіть значення прискорення вільного падіння g (у м/с^2): ")
+                g = get_float()
+                bot_response("Введіть висоту h (у метрах): ")
                 h = get_float()
-                bot_response(f'Площа трикутника дорівнює: {0.5 * b * h}')
+
+                potential_energy = m * g * h
+
+                bot_response(f'Потенціальна енергія: {potential_energy} Дж')
+
+
             if formula_subtopic == 'закон кулона':
-                bot_response('Закон Кулона - сила взаємодії між зарядами. Формула площі трикутника -> F = k * (|q1| * |q2|) / r^2')
+                bot_response(
+                    'Закон Кулона - сила взаємодії між зарядами. Формула площі трикутника -> F = k * (|q1| * |q2|) / r^2')
                 bot_response("Введіть заряд першої частинки q1 (в кулонах): ")
                 q1 = get_float()
                 bot_response("Введіть заряд другої частинки q2 (в кулонах): ")
@@ -566,8 +574,10 @@ def handle_formula_subtopics(formula_subtopic):
                 force = k * abs(q1) * abs(q2) / r ** 2
 
                 bot_response(f'Сила взаємодії за Законом Кулона: {force} Н')
+
             if formula_subtopic == 'закон стефана-больцмана':
-                bot_response('Закон Стефана-Больцмана - закон, який описує випромінювану потужність чорного тіла. Формула: P = ε * σ * A * T^4')
+                bot_response(
+                    'Закон Стефана-Больцмана - закон, який описує випромінювану потужність чорного тіла. Формула: P = ε * σ * A * T^4')
                 bot_response("Введіть емісійний коефіцієнт ε: ")
                 epsilon = get_float()
                 bot_response("Введіть площу поверхні тіла A (в квадратних метрах): ")
@@ -579,38 +589,47 @@ def handle_formula_subtopics(formula_subtopic):
                 power = epsilon * sigma * a * t ** 4
 
                 bot_response(f'Випромінювана потужність чорного тіла: {power} Вт')
-            if formula_subtopic == 'скалярний добуток векторів':
-                    bot_response('Скалярний добуток векторів - це сума добутків відповідних координат векторів. Формула: A · B = A₁ * B₁ + A₂ * B₂ + A₃ * B₃')
-                    bot_response("Введіть координати першого вектора A (у форматі x,y,z): ")
-                    a_coords = input().split(",")
-                    a = [float(coord) for coord in a_coords]
-                    bot_response("Введіть координати другого вектора B (у форматі x,y,z): ")
-                    b_coords = input().split(",")
-                    b = [float(coord) for coord in b_coords]
 
-                    if len(a) != 3 or len(b) != 3:
-                        raise ValueError("Некоректний ввід. Вектори мають мати три координати.")
+            if formula_subtopic == 'формула скалярного добутку векторів':
+                bot_response(
+                    'Скалярний добуток векторів - це сума добутків відповідних координат векторів. Формула: A · B = A₁ * B₁ + A₂ * B₂ + A₃ * B₃')
+                bot_response("Введіть координати першого вектора A (у форматі x,y,z): ")
+                a = []
+                a.append(get_float())
+                a.append(get_float())
+                a.append(get_float())
+                bot_response("Введіть координати другого вектора B (у форматі x,y,z): ")
+                b = []
+                b.append(get_float())
+                b.append(get_float())
+                b.append(get_float())
 
-                    dot_product = a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+                dot_product = a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 
-                    bot_response(f'Скалярний добуток векторів A і B: {dot_product}')
+                bot_response(f'Скалярний добуток векторів A і B: {dot_product}')
+
             if formula_subtopic == 'формула для обчислення площі трикутника за допомогою векторного добутку':
                 bot_response('Формула площі трикутника -> A = 0.5 * |v1 x v2|')
                 bot_response("Введіть координати вектора v1 (у форматі x,y,z): ")
-                v1_coords = input().split(",")
-                v1 = [float(coord) for coord in v1_coords]
+                v1 = []
+                v1.append(get_float())
+                v1.append(get_float())
+                v1.append(get_float())
                 bot_response("Введіть координати вектора v2 (у форматі x,y,z): ")
-                v2_coords = input().split(",")
-                v2 = [float(coord) for coord in v2_coords]
+                v2 = []
+                v2.append(get_float())
+                v2.append(get_float())
+                v2.append(get_float())
 
-                if len(v1) != 3 or len(v2) != 3:
-                    raise ValueError("Некоректний ввід. Вектори мають мати три координати.")
-
-                cross_product = [v1[1] * v2[2] - v1[2] * v2[1], v1[2] * v2[0] - v1[0] * v2[2],
-                                 v1[0] * v2[1] - v1[1] * v2[0]]
-                area = 0.5 * (cross_product[0] ** 2 + cross_product[1] ** 2 + cross_product[2] ** 2) ** 0.5
+                cross_product = [
+                    v1[1] * v2[2] - v1[2] * v2[1],
+                    v1[2] * v2[0] - v1[0] * v2[2],
+                    v1[0] * v2[1] - v1[1] * v2[0]
+                ]
+                area = 0.5 * math.sqrt(cross_product[0] ** 2 + cross_product[1] ** 2 + cross_product[2] ** 2)
 
                 bot_response(f'Площа трикутника дорівнює: {area}')
+
             if formula_subtopic == 'формула для обчислення довжини відрізка між двома точками на площині':
                 bot_response('Формула для обчислення довжини відрізка між двома точками на площині.')
                 bot_response("Введіть координати першої точки (x1, y1): ")
@@ -623,23 +642,31 @@ def handle_formula_subtopics(formula_subtopic):
                 distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
                 bot_response(f'Довжина відрізка між точками ({x1}, {y1}) і ({x2}, {y2}): {distance}')
+
+            if formula_subtopic == 'площа трикутника':
+                bot_response('Формула площі трикутника -> S = 0.5 * b * h')
+                bot_response("Введіть довжину основи трикутника b: ")
+                b = get_float()
+                bot_response("Введіть висоту трикутника, опущену на основу h: ")
+                h = get_float()
+                bot_response(f'Площа трикутника дорівнює: {0.5 * b * h}')
         except Stopping:
-            print('backing2')
             break
     return None
 
-
+#збереження переданних bot_response та user_input значень у формі діалога в файл названий за часом початку діалогу
 def store_chat_log(request, response):
-    with open('chat_log.txt', 'a', encoding='utf-8') as file:
+    file_name = f"dialog-{date_time}.txt"
+    with open(file_name, 'a', encoding='utf-8') as file:
         if request:
             file.write(f'[Користувач]: {request}\n')
         if response:
             file.write(f'[Бот]: {response}\n')
 
-
+#основний цикл, що оперує функціями
 bot_response(greeting)
-while True:
-    try:
+while True:                 #зациклення
+    try:                                          #блок для захопленя виключення й перерву циклу, див. except нижче
         input_text = check_input_for_commands()
         current_topic = get_current_topic()
         subtopics = get_subtopics(current_topic)
@@ -647,25 +674,25 @@ while True:
             if input_text in subtopics:
                 topic_history.append(input_text)
                 if current_topic is not None:
-                    response = get_info()  # Define the 'response' variable
+                    response = get_info()
                     bot_response(response)
                     handle_subtopics(input_text)
-                    topic_history.pop()
-                    bot_response(get_info())
-                    continue
+                    topic_history.pop()             #вихід з підтем, адже вони відпацьовують лише один раз і не мають підтем
+                    bot_response(get_info())    #уникнення додачі коментарю, адже користувач не обирав цю тему в ручну
+                    continue                   #уникнення додачі коментарю, адже користувач не обирав цю тему в ручну
             else:
                 bot_response(f'Я не знаю цієї теми. Оберіть, будь ласка, з доступних: {", ".join(subtopics)}.')
-                continue
+                continue                             #перезапит вводу якщо він не був ані командою, ані темою/підтемою
             if random.random() < 0.25:
-                resp = random_comment() + get_info()
+                resp = random_comment() + get_info()      #додача коментаря до тіла відповіді з деякою вірогідністю
                 bot_response(resp)
             else:
                 bot_response(get_info())
-    except Exiting:
-        bot_response("Вихід з програми. Було приємно поспілкуватись, бувайте!")
+    except Exiting:                                                                #вихід з коду в будь-якій частині
+        bot_response("Вихід з програми. Було приємно поспілкуватись, бувайте!")     #якщо була введена команда
         break
-    except BackRequested:
-        if len(topic_history) > 0:
+    except BackRequested:                                          #повернення до минулої теми в будь-якій частині коду
+        if len(topic_history) > 0:                                  #якщо була введена команда
             topic_history.pop()
             bot_response(get_info())
         else:
